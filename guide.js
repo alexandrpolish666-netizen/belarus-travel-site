@@ -5,7 +5,7 @@
   const message = document.getElementById("guide-message");
   const listen = document.getElementById("guide-listen");
   const avatarUrl = "alisa-avatar.jpg";
-  const welcomeAudio = new Audio("audio/alisa-welcome.mp3");
+  const welcomeAudio = new Audio("audio/alisa-welcome.mp3?v=20261122-greeting-v2");
   const placeAudio = document.getElementById("place-details-audio");
   const detailsModal = document.getElementById("place-details-modal");
   const detailsNarration = detailsModal?.querySelector(".narration");
@@ -132,26 +132,29 @@
   const chatInput = chat.querySelector("#guide-chat-input");
   const voiceToggle = chat.querySelector(".guide-chat-voice");
   const voiceStatus = chat.querySelector(".guide-chat-voice-status");
-  let speakReplies = Boolean(window.jarvisVoice?.isEnabled());
+  const voiceChannel = "alice";
+  let speakReplies = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
   let pendingImagePrompt = "";
 
   function renderVoiceToggle() {
-    speakReplies = Boolean(window.jarvisVoice?.isEnabled());
+    speakReplies = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
     voiceToggle.setAttribute("aria-pressed", String(speakReplies));
     voiceToggle.textContent = `🔊 Озвучивать ответы: ${speakReplies ? "вкл." : "выкл."}`;
   }
-  window.addEventListener("alice-voice-setting", renderVoiceToggle);
+  window.addEventListener("alice-voice-setting", event => {
+    if (event.detail?.channel === voiceChannel) renderVoiceToggle();
+  });
   renderVoiceToggle();
 
   function speakChatReply(text) {
     window.jarvisVoice?.speak(text, state => {
       if (!voiceStatus) return;
       voiceStatus.textContent = state === "loading" ? "Готовлю озвучку…" : state === "playing" ? "Алиса озвучивает ответ." : state === "error" ? "Не удалось озвучить ответ." : "";
-    });
+    }, voiceChannel);
   }
 
   voiceToggle.addEventListener("click", () => {
-    window.jarvisVoice?.setEnabled(!speakReplies);
+    window.jarvisVoice?.setEnabled(!speakReplies, voiceChannel);
   });
 
   function addChatMessage(role, text, link = "", imageDataUrl = "") {

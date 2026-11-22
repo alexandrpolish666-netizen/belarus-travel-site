@@ -5,27 +5,30 @@
   const voiceToggle = document.getElementById("bison-voice-toggle");
   if (!form || !input || !answer) return;
 
-  let speakAnswers = Boolean(window.jarvisVoice?.isEnabled());
+  const voiceChannel = "bison";
+  let speakAnswers = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
 
   function renderVoiceToggle() {
     if (!voiceToggle) return;
-    speakAnswers = Boolean(window.jarvisVoice?.isEnabled());
+    speakAnswers = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
     voiceToggle.setAttribute("aria-pressed", String(speakAnswers));
     voiceToggle.textContent = "🔊 Озвучивать ответы: " + (speakAnswers ? "вкл." : "выкл.");
   }
-  window.addEventListener("alice-voice-setting", renderVoiceToggle);
+  window.addEventListener("alice-voice-setting", event => {
+    if (event.detail?.channel === voiceChannel) renderVoiceToggle();
+  });
   renderVoiceToggle();
 
   function speak(text) {
     window.jarvisVoice?.speak(text, state => {
       const status = document.getElementById("bison-voice-status");
-      if (status) status.textContent = state === "loading" ? "Готовлю озвучку…" : state === "error" ? "Не удалось загрузить голосовую запись." : "";
-    });
+      if (status) status.textContent = state === "loading" ? "Готовлю озвучку…" : state === "playing" ? "Алиса озвучивает ответ." : state === "error" ? "Не удалось озвучить ответ." : "";
+    }, voiceChannel);
   }
 
   voiceToggle?.addEventListener("click", () => {
     speakAnswers = !speakAnswers;
-    window.jarvisVoice?.setEnabled(!speakAnswers);
+    window.jarvisVoice?.setEnabled(speakAnswers, voiceChannel);
   });
 
   async function askBison(question) {

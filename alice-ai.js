@@ -30,14 +30,7 @@
     const prompt = typeof request === "string" ? request.trim() : "";
     if (!prompt) throw new Error("Опиши, какое изображение нужно создать.");
     const cleanRequest = prompt.replace(/^(?:сгенерируй|сгенерировать|нарисуй|изобрази|создай|покажи)\s+(?:мне\s+)?(?:картину|картинку|изображение|иллюстрацию|рисунок)?\s*/i, "").trim() || prompt;
-    const isBison = /(?:^|[^а-яё])(?:зубр|бизон)[а-яё]*(?:$|[^а-яё])/iu.test(cleanRequest);
-    const subject = isBison ? "a European bison (Bison bonasus)" : cleanRequest;
-    const imagePrompt = [
-      `The exact main subject is ${subject}. Follow the user's requested subject and details literally.`,
-      cleanRequest !== subject && !isBison ? `Additional requested details: ${cleanRequest}` : "",
-      "Create one polished illustration. Keep the requested subject large, recognizable, and central. Do not replace it with a person, portrait, or unrelated scene. Add no person unless the user explicitly requested one. Use a fitting background and natural colors. No text, watermark, or logo."
-    ].filter(Boolean).join(" ").slice(0, 1800);
-    const result = await post({ mode: "image", prompt: imagePrompt });
+    const result = await post({ mode: "image", prompt: cleanRequest.slice(0, 1200) });
     if (typeof result.imageUrl !== "string" || !result.imageUrl.startsWith("data:image/")) {
       throw new Error("Сервис не вернул изображение.");
     }
