@@ -1,0 +1,10 @@
+Models are lightweight Grab3D GLBs released under CC0 1.0.
+Fox: https://grab3d.com/models/animals/fox/
+Owl: https://grab3d.com/models/animals/owl/
+European robin: https://grab3d.com/models/animals/bird/
+Deer: https://grab3d.com/models/animals/deer/
+Sea turtle: https://grab3d.com/models/animals/sea-turtle/
+Tabby cat: https://grab3d.com/models/animals/cat/
+Hedgehog: https://grab3d.com/models/animals/hedgehog/
+Squirrel: https://grab3d.com/models/animals/squirrel/
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
