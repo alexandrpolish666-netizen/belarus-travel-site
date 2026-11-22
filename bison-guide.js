@@ -5,7 +5,16 @@
   const voiceToggle = document.getElementById("bison-voice-toggle");
   if (!form || !input || !answer) return;
 
-  let speakAnswers = false;
+  let speakAnswers = Boolean(window.jarvisVoice?.isEnabled());
+
+  function renderVoiceToggle() {
+    if (!voiceToggle) return;
+    speakAnswers = Boolean(window.jarvisVoice?.isEnabled());
+    voiceToggle.setAttribute("aria-pressed", String(speakAnswers));
+    voiceToggle.textContent = "🔊 Озвучивать ответы: " + (speakAnswers ? "вкл." : "выкл.");
+  }
+  window.addEventListener("alice-voice-setting", renderVoiceToggle);
+  renderVoiceToggle();
 
   function speak(text) {
     window.jarvisVoice?.speak(text, state => {
@@ -16,9 +25,7 @@
 
   voiceToggle?.addEventListener("click", () => {
     speakAnswers = !speakAnswers;
-    voiceToggle.setAttribute("aria-pressed", String(speakAnswers));
-    voiceToggle.textContent = "\u{1F50A} \u041e\u0437\u0432\u0443\u0447\u0438\u0432\u0430\u0442\u044c \u043e\u0442\u0432\u0435\u0442\u044b: " + (speakAnswers ? "\u0432\u043a\u043b." : "\u0432\u044b\u043a\u043b.");
-    if (!speakAnswers) window.jarvisVoice?.stop();
+    window.jarvisVoice?.setEnabled(!speakAnswers);
   });
 
   async function askBison(question) {

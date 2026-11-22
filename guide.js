@@ -126,23 +126,32 @@
   const chat = document.createElement("section");
   chat.className = "guide-chat";
   chat.setAttribute("aria-label", "Чат с Алисой");
-  chat.innerHTML = '<div class="guide-chat-log" role="log" aria-live="polite" aria-relevant="additions"></div><form class="guide-chat-form"><label class="visually-hidden" for="guide-chat-input">Сообщение Алисе</label><input id="guide-chat-input" name="message" maxlength="300" autocomplete="off" placeholder="Например: маршрут Минск — Несвиж" required><button type="submit">Отправить</button></form><button class="guide-chat-voice" type="button" aria-pressed="false">🔊 Озвучивать ответы: выкл.</button>';
+  chat.innerHTML = '<div class="guide-chat-log" role="log" aria-live="polite" aria-relevant="additions"></div><form class="guide-chat-form"><label class="visually-hidden" for="guide-chat-input">Сообщение Алисе</label><input id="guide-chat-input" name="message" maxlength="300" autocomplete="off" placeholder="Например: маршрут Минск — Несвиж" required><button type="submit">Отправить</button></form><button class="guide-chat-voice" type="button" aria-pressed="false">🔊 Озвучивать ответы: выкл.</button><span class="guide-chat-voice-status" aria-live="polite"></span>';
   panel?.append(chat);
   const chatLog = chat.querySelector(".guide-chat-log");
   const chatInput = chat.querySelector("#guide-chat-input");
   const voiceToggle = chat.querySelector(".guide-chat-voice");
-  let speakReplies = false;
+  const voiceStatus = chat.querySelector(".guide-chat-voice-status");
+  let speakReplies = Boolean(window.jarvisVoice?.isEnabled());
   let pendingImagePrompt = "";
 
+  function renderVoiceToggle() {
+    speakReplies = Boolean(window.jarvisVoice?.isEnabled());
+    voiceToggle.setAttribute("aria-pressed", String(speakReplies));
+    voiceToggle.textContent = `🔊 Озвучивать ответы: ${speakReplies ? "вкл." : "выкл."}`;
+  }
+  window.addEventListener("alice-voice-setting", renderVoiceToggle);
+  renderVoiceToggle();
+
   function speakChatReply(text) {
-    window.jarvisVoice?.speak(text);
+    window.jarvisVoice?.speak(text, state => {
+      if (!voiceStatus) return;
+      voiceStatus.textContent = state === "loading" ? "Готовлю озвучку…" : state === "playing" ? "Алиса озвучивает ответ." : state === "error" ? "Не удалось озвучить ответ." : "";
+    });
   }
 
   voiceToggle.addEventListener("click", () => {
-    speakReplies = !speakReplies;
-    voiceToggle.setAttribute("aria-pressed", String(speakReplies));
-    voiceToggle.textContent = `🔊 Озвучивать ответы: ${speakReplies ? "вкл." : "выкл."}`;
-    if (!speakReplies) window.jarvisVoice?.stop();
+    window.jarvisVoice?.setEnabled(!speakReplies);
   });
 
   function addChatMessage(role, text, link = "", imageDataUrl = "") {
@@ -184,7 +193,7 @@
     const pending = chatLog.lastElementChild;
     try {
       if (typeof window.generateAliceImage !== "function") throw new Error("Генератор изображений не загрузился. Обнови страницу.");
-      const result = await window.generateAliceImage(request, context);
+      const result = await window.generateAliceImage(request);
       pending?.remove();
       const artwork = document.getElementById("bison-artwork-image");
       const imageSource = result.imageUrl || result.dataUrl;
