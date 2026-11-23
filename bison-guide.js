@@ -7,12 +7,14 @@
 
   const voiceChannel = "bison";
   let speakAnswers = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
+  let requestNumber = 0;
+  const imageRequest = /(?:сгенерируй|генерируй|создай|нарисуй|изобрази|сделай\s+(?:мне\s+)?(?:фото|картин|изображен|рисунок|иллюстрац)|покажи\s+(?:мне\s+)?(?:фото|картин|изображен|рисунок|иллюстрац))/i;
 
   function renderVoiceToggle() {
     if (!voiceToggle) return;
     speakAnswers = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
     voiceToggle.setAttribute("aria-pressed", String(speakAnswers));
-    voiceToggle.textContent = "🔊 Озвучивать ответы: " + (speakAnswers ? "вкл." : "выкл.");
+    voiceToggle.textContent = `🔊 Озвучивать ответы: ${speakAnswers ? "вкл." : "выкл."}`;
   }
   window.addEventListener("alice-voice-setting", event => {
     if (event.detail?.channel === voiceChannel) renderVoiceToggle();
@@ -27,32 +29,62 @@
   }
 
   voiceToggle?.addEventListener("click", () => {
-    speakAnswers = !speakAnswers;
-    window.jarvisVoice?.setEnabled(speakAnswers, voiceChannel);
+    window.jarvisVoice?.setEnabled(!speakAnswers, voiceChannel);
   });
+
+  async function generateImage(request, number) {
+    const artwork = document.getElementById("bison-artwork");
+    const artworkImage = document.getElementById("bison-artwork-image");
+    try {
+      if (typeof window.generateAliceImage !== "function") throw new Error("Генератор изображений не загрузился. Обнови страницу и попробуй ещё раз.");
+      answer.textContent = "Алиса создаёт изображение…";
+      const result = await window.generateAliceImage(request);
+      if (number !== requestNumber) return;
+      artworkImage.src = result.imageUrl || result.dataUrl;
+      artworkImage.hidden = false;
+      artwork?.classList.add("has-image");
+      answer.textContent = "Готово — изображение появилось рядом с моделью зубра.";
+    } catch (error) {
+      if (number !== requestNumber) return;
+      answer.dataset.error = "true";
+      answer.textContent = error.message || "Не удалось создать изображение. Попробуй уточнить описание.";
+    }
+  }
 
   async function askBison(question) {
     const text = question.trim();
     if (!text) return;
+    const number = ++requestNumber;
     const submit = form.querySelector("button[type=submit]");
     submit.disabled = true;
     input.disabled = true;
     answer.dataset.error = "false";
-    answer.textContent = "\u0410\u043b\u0438\u0441\u0430 \u0438\u0449\u0435\u0442 \u043e\u0442\u0432\u0435\u0442\u2026";
-    try {
-      if (typeof window.askAliceWithGemini !== "function") throw new Error("\u0418\u0418 \u0410\u043b\u0438\u0441\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u043b\u0430\u0441\u044c. \u041e\u0431\u043d\u043e\u0432\u0438 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0443 \u0438 \u043f\u043e\u043f\u0440\u043e\u0431\u0443\u0439 \u0435\u0449\u0451 \u0440\u0430\u0437.");
-      const prompt = "Answer in Russian as a friendly guide to Belarusian wildlife. The user asks about the European bison (Bison bonasus). Give a brief, simple answer; do not invent facts or exact numbers. If uncertain, say so. Question: " + text;
-      const reply = await window.askAliceWithGemini(prompt);
-      const response = reply || "\u041d\u0435 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u043e\u0441\u044c \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u043e\u0442\u0432\u0435\u0442. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439 \u0441\u043f\u0440\u043e\u0441\u0438\u0442\u044c \u0438\u043d\u0430\u0447\u0435.";
-      answer.textContent = response;
-      if (speakAnswers) speak(response);
-    } catch (error) {
-      answer.dataset.error = "true";
-      answer.textContent = error.message || "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043e\u0442\u0432\u0435\u0442 \u0418\u0418. \u041f\u0440\u043e\u0432\u0435\u0440\u044c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043a \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0443.";
-    } finally {
+    if (imageRequest.test(text)) {
+      await generateImage(text, number);
       submit.disabled = false;
       input.disabled = false;
       input.focus();
+      return;
+    }
+    answer.textContent = "Алиса ищет ответ…";
+    try {
+      if (typeof window.askAliceWithGemini !== "function") throw new Error("ИИ Алиса пока не загрузилась. Обнови страницу и попробуй ещё раз.");
+      const prompt = "Answer in Russian as a friendly guide to Belarusian wildlife. The user asks about the European bison (Bison bonasus). Give a brief, simple answer; do not invent facts or exact numbers. If uncertain, say so. Question: " + text;
+      const reply = await window.askAliceWithGemini(prompt);
+      if (number !== requestNumber) return;
+      const response = reply || "Не получилось подготовить ответ. Попробуй спросить иначе.";
+      answer.textContent = response;
+      if (speakAnswers) speak(response);
+    } catch (error) {
+      if (number !== requestNumber) return;
+      answer.dataset.error = "true";
+      answer.textContent = error.message || "Не удалось получить ответ ИИ. Проверь подключение к интернету.";
+    } finally {
+      if (number === requestNumber) {
+        submit.disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
     }
   }
 

@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e4b571">
-<link rel="stylesheet" href="guide.css?v=20261122-nanobanana1">
-<link rel="stylesheet" href="bison-guide.css?v=20261122-nanobanana1">
+<link rel="stylesheet" href="guide.css?v=20261123-chat-audio-image1">
+<link rel="stylesheet" href="bison-guide.css?v=20261123-chat-audio-image1">
 <meta name="description" content="Путеводитель по архитектуре Беларуси с интерактивной картой, заданиями и коллекцией животных.">
 <title>Архитектура Беларуси — интерактивный путеводитель</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Ccircle cx=%2732%27 cy=%2732%27 r=%2729%27 fill=%27%23552d18%27 stroke=%27%23a96322%27 stroke-width=%273%27/%3E%3Cpath d=%27m32 9 5 16 16 7-16 5-5 16-5-16-16-5 16-7z%27 fill=%27%23f0bd67%27/%3E%3C/svg%3E">
 <style>
@@ -64,6 +64,19 @@ footer{padding:20px 0 30px;border-top:1px solid var(--line);color:var(--muted);f
 .place-details-modal .place-photo-stage model-viewer{--poster-color:transparent;background:transparent}
 .place-details-card > #place-details-close{z-index:5;top:12px;right:12px;border:1px solid #6c3c1d88;color:#321b0c;background:#f8e3b8;box-shadow:0 2px 8px #0006}
 .place-details-card > #place-details-close:hover{background:#fff0cf}
+
+/* Mobile: keep section copy in a single flow column and stop the two narrators from overlapping the story. */
+@media(max-width:650px){
+  .how-it-works .sectionhead{grid-template-columns:minmax(0,1fr);row-gap:14px}
+  .place-details-modal .narration{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px;padding:12px}
+  .place-details-modal .narration>.guide-modal-avatar,
+  .place-details-modal .narration>.photo-companion{position:static!important;grid-row:auto;justify-self:center;align-self:start;min-width:0;max-width:100%;transform:none!important}
+  .place-details-modal .narration>.guide-modal-avatar{grid-column:1}
+  .place-details-modal .narration>.photo-companion{grid-column:2;right:auto!important;top:auto!important}
+  .place-details-modal .narration>.photo-companion .companion-model{width:76px!important;height:76px!important}
+  .place-details-modal .narration>div:last-child{grid-column:1/-1;grid-row:auto;min-width:0;overflow-wrap:anywhere}
+  .place-details-modal .narration #place-details-audio{width:100%;max-width:100%}
+}
 </style>
 
 <style>
@@ -75,6 +88,7 @@ footer{padding:20px 0 30px;border-top:1px solid var(--line);color:var(--muted);f
 @media(max-width:900px){.map-workspace{grid-template-columns:1fr}.map-panel{position:static;top:auto;order:1}.route-controls{order:2}#belarus-map{order:1;height:520px}.community-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.map-workspace{padding:8px}.route-controls,.community-card{padding:16px}#belarus-map{height:440px;min-height:360px}.route-buttons{grid-template-columns:1fr}.review-form{grid-template-columns:1fr}.review-form .review-text{grid-column:auto}}
 18%{opacity:1;left:5%;top:82%;transform:translate(-50%,-50%) scale(.8)}48%{opacity:1;left:31%;top:80%;transform:translate(-50%,-50%) scale(.9)}76%{opacity:1;left:61%;top:82%;transform:translate(-50%,-50%) scale(.98)}100%{opacity:1;left:78%;top:80%;transform:translate(-50%,-50%) scale(1)}}
+
 </style>
 <style>
 /* Atlas-inspired visual polish */
@@ -368,6 +382,7 @@ section{padding:46px 0}.map-workspace{align-items:start}.route-controls{align-se
 .map-popup{width:220px;font-family:Georgia,serif}.map-popup img{display:block;width:100%;height:120px;margin-bottom:8px;border-radius:8px;object-fit:cover;background:#e3b571}.map-popup p{margin:5px 0;color:#684725;font-size:11px;line-height:1.45}.map-popup-action{width:100%;text-align:center}
 @media(max-width:650px){.place-details-modal{padding:9px}.place-details-photo{aspect-ratio:16/10}.placefoot{gap:6px}}
 18%{opacity:1;left:5%;top:82%;transform:translate(-50%,-50%) scale(.8)}48%{opacity:1;left:31%;top:80%;transform:translate(-50%,-50%) scale(.9)}76%{opacity:1;left:61%;top:82%;transform:translate(-50%,-50%) scale(.98)}100%{opacity:1;left:78%;top:80%;transform:translate(-50%,-50%) scale(1)}}
+
 </style>
 <style>
 .offline-map{position:relative;isolation:isolate;width:100%;height:100%;min-height:inherit;overflow:hidden;border-radius:inherit;background:radial-gradient(ellipse at 50% 48%,#e9d29c,#d4ad71 75%);color:#563919}
@@ -386,8 +401,10 @@ section{padding:46px 0}.map-workspace{align-items:start}.route-controls{align-se
 @keyframes owl-perched-wing{from{transform:rotate(-17deg) scaleY(.96)}to{transform:rotate(17deg) scaleY(1.02)}}
 @media(prefers-reduced-motion:reduce){.photo-companion.companion-ironowl.speaking,.photo-companion.companion-scrollwing.speaking{animation:none}.photo-companion.companion-ironowl.speaking .wing,.photo-companion.companion-scrollwing.speaking .wing{animation:none!important}}
 18%{opacity:1;left:5%;top:82%;transform:translate(-50%,-50%) scale(.8)}48%{opacity:1;left:31%;top:80%;transform:translate(-50%,-50%) scale(.9)}76%{opacity:1;left:61%;top:82%;transform:translate(-50%,-50%) scale(.98)}100%{opacity:1;left:78%;top:80%;transform:translate(-50%,-50%) scale(1)}}
+
 </style><style>.photo-companion.companion-ironowl .creature-art{width:92px;height:68px}.photo-companion.companion-ironowl .wing-left{transform-box:fill-box;transform-origin:100% 76%}.photo-companion.companion-ironowl .wing-right{transform-box:fill-box;transform-origin:0% 76%}.photo-companion.companion-ironowl.arriving{animation:owl-gentle-land 1.8s cubic-bezier(.2,.75,.25,1) both}.photo-companion.companion-ironowl.arriving .wing-left,.photo-companion.companion-ironowl.speaking .wing-left{animation:owl-soft-wing 1.1s ease-in-out 2 alternate}.photo-companion.companion-ironowl.arriving .wing-right,.photo-companion.companion-ironowl.speaking .wing-right{animation:owl-soft-wing 1.1s ease-in-out 2 alternate-reverse}.photo-companion.companion-ironowl.speaking{animation:owl-calm-perch 3.6s ease-in-out infinite}.photo-companion.companion-ironowl.speaking .creature-art{animation:owl-breath 3.6s ease-in-out infinite;transform-origin:50% 90%}@keyframes owl-gentle-land{0%{opacity:0;left:17%;top:28%;transform:translate(-50%,-50%) scale(.72) rotate(-8deg)}55%{opacity:1;left:72%;top:64%;transform:translate(-50%,-50%) scale(1.02) rotate(2deg)}78%{left:80%;top:75%;transform:translate(-50%,-50%) scale(.94) rotate(-1deg)}100%{opacity:1;left:80%;top:78%;transform:translate(-50%,-50%) scale(.92) rotate(0)}}@keyframes owl-soft-wing{from{transform:rotate(-5deg)}to{transform:rotate(7deg)}}@keyframes owl-calm-perch{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-1.5px)}}@keyframes owl-breath{0%,100%{scale:1}50%{scale:1.012}}@media(prefers-reduced-motion:reduce){.photo-companion.companion-ironowl.arriving,.photo-companion.companion-ironowl.speaking,.photo-companion.companion-ironowl .wing{animation:none!important}}
 18%{opacity:1;left:5%;top:82%;transform:translate(-50%,-50%) scale(.8)}48%{opacity:1;left:31%;top:80%;transform:translate(-50%,-50%) scale(.9)}76%{opacity:1;left:61%;top:82%;transform:translate(-50%,-50%) scale(.98)}100%{opacity:1;left:78%;top:80%;transform:translate(-50%,-50%) scale(1)}}
+
 </style><!-- 3D viewer is loaded when the companion collection or a details dialog approaches the screen. -->
 <style>
 /* Компактный спутник рядом с Алисой в карточке рассказа. */
@@ -399,6 +416,7 @@ section{padding:46px 0}.map-workspace{align-items:start}.route-controls{align-se
 @keyframes pet-talk{to{transform:translateY(-2px) rotate(2deg)}}
 @media(max-width:650px){.place-details-modal .narration{grid-template-columns:66px 48px minmax(0,1fr)!important;gap:8px}}
 @media(max-width:360px){.place-details-modal .narration{grid-template-columns:54px 42px minmax(0,1fr)!important;gap:6px}}
+
 </style>
 </head>
 <body>
@@ -707,8 +725,8 @@ initializePage();
   <button class="guide-toggle" id="guide-toggle" type="button" aria-expanded="false" aria-controls="guide-panel"><svg class="guide-toggle-portrait" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="34" fill="#f0d39b" stroke="#a96322" stroke-width="2"/><path d="M17 31c0-14 8-22 20-22 12 0 19 9 19 22v13H17z" fill="#5a321d"/><path d="M21 32c0-12 6-18 15-18s15 7 15 18v8c0 10-7 17-15 17s-15-7-15-17z" fill="#f2c58e"/><path d="M20 34c2-11 9-17 17-18-3 7-7 10-16 13m30 7c-1-7-4-12-9-16 1 7 3 11 9 16" fill="#5a321d"/><circle cx="31" cy="37" r="1.8" fill="#402311"/><circle cx="42" cy="37" r="1.8" fill="#402311"/><path d="M32 45q4 4 8 0" fill="none" stroke="#98340f" stroke-width="1.8" stroke-linecap="round"/><path d="M16 68c2-11 10-16 20-16s18 5 20 16" fill="#713713"/><path d="m26 54 10 8 10-8" fill="#f3d29a"/></svg><span>Алиса · Юный гид</span></button>
 </aside>
 <script src="image-config.js?v=20261122-cloudflare1" defer></script>
-<script src="alice-ai.js?v=20261122-chatfix2" defer></script>
+<script src="alice-ai.js?v=20261123-chat-audio-image1" defer></script>
 <script src="voice-tts.js?v=20261122-voice-isolated2" defer></script>
-<script src="guide.js?v=20261122-voice-isolated2" defer></script>
-<script src="bison-guide.js?v=20261122-voice-isolated2" defer></script>
+<script src="guide.js?v=20261123-chat-audio-image1" defer></script>
+<script src="bison-guide.js?v=20261123-chat-audio-image1" defer></script>
 </body></html>

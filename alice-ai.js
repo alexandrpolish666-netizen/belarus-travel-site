@@ -29,7 +29,7 @@
   window.generateAliceImage = async function (request) {
     const prompt = typeof request === "string" ? request.trim() : "";
     if (!prompt) throw new Error("Опиши, какое изображение нужно создать.");
-    const cleanRequest = prompt.replace(/^(?:сгенерируй|сгенерировать|нарисуй|изобрази|создай|покажи)\s+(?:мне\s+)?(?:картину|картинку|изображение|иллюстрацию|рисунок)?\s*/i, "").trim() || prompt;
+    const cleanRequest = prompt.replace(/^(?:сгенерируй|генерируй|создай|нарисуй|изобрази|сделай|покажи)\s+(?:мне\s+)?(?:фото|картину|картинку|изображение|иллюстрацию|рисунок)?\s*/i, "").trim() || prompt;
     const result = await post({ mode: "image", prompt: cleanRequest.slice(0, 1200) });
     if (typeof result.imageUrl !== "string" || !result.imageUrl.startsWith("data:image/")) {
       throw new Error("Сервис не вернул изображение.");
