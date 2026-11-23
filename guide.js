@@ -104,52 +104,9 @@
   if (typeof originalShowPlaceDetails === "function") {
     window.showPlaceDetails = function (id) {
       originalShowPlaceDetails(id);
-      if (id === "novogrudok" || id === "vitebsk-station") {
-        const audio = document.getElementById("place-details-audio");
-        const button = document.getElementById("place-details-speak");
-        const stop = document.getElementById("place-details-stop");
-        const status = document.getElementById("speech-status");
-        const narrator = document.getElementById("narrator");
-        audio?.pause();
-        if (audio) { audio.hidden = true; audio.controls = false; }
-        if (status) status.textContent = "Рассказ озвучивается голосом браузера.";
-        if (button) button.onclick = () => {
-          if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
-            if (status) status.textContent = "В этом браузере недоступна озвучка текста.";
-            return;
-          }
-          if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-            narrator?.classList.remove("speaking");
-            button.textContent = "▶ Послушать рассказ";
-            return;
-          }
-          const text = document.getElementById("place-details-magic")?.textContent || "";
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = "ru-RU";
-          utterance.rate = 0.96;
-          const voices = window.speechSynthesis.getVoices();
-          utterance.voice = voices.find(voice => /^ru(?:-|$)/i.test(voice.lang) && /natural|онлайн|online/i.test(voice.name))
-            || voices.find(voice => /^ru(?:-|$)/i.test(voice.lang) && voice.default)
-            || voices.find(voice => /^ru(?:-|$)/i.test(voice.lang))
-            || null;
-          utterance.onstart = () => {
-            narrator?.classList.add("speaking");
-            button.textContent = "Ⅱ Пауза";
-            if (status) status.textContent = "Алиса рассказывает.";
-          };
-          utterance.onend = utterance.onerror = () => {
-            narrator?.classList.remove("speaking");
-            button.textContent = "▶ Послушать рассказ";
-            if (status) status.textContent = "";
-          };
-          window.speechSynthesis.speak(utterance);
-        };
-        if (stop) stop.dataset.browserNarration = "true";
-      } else {
-        const audio = document.getElementById("place-details-audio");
-        if (audio) { audio.hidden = false; audio.controls = true; }
-      }
+      const audio = document.getElementById("place-details-audio");
+      if (audio) { audio.hidden = false; audio.controls = true; }
+      document.getElementById("place-details-stop")?.removeAttribute("data-alice-narration");
       const placeTitle = document.getElementById("place-details-title").textContent.trim();
       const meta = document.getElementById("place-details-meta").textContent.trim();
       const fact = document.getElementById("place-details-fact").textContent.trim();
@@ -188,8 +145,8 @@
     voiceToggle.textContent = `🔊 Озвучивать ответы: ${speakReplies ? "вкл." : "выкл."}`;
   }
   document.getElementById("place-details-stop")?.addEventListener("click", () => {
-    if (document.getElementById("place-details-stop")?.dataset.browserNarration === "true") {
-      window.speechSynthesis?.cancel();
+    if (document.getElementById("place-details-stop")?.dataset.aliceNarration === "true") {
+      window.jarvisVoice?.stop();
       document.getElementById("narrator")?.classList.remove("speaking");
       document.getElementById("place-details-speak").textContent = "▶ Послушать рассказ";
     }
