@@ -54,46 +54,38 @@ export default {
         return json({ error: "Speech text must contain 1 to 3000 characters." }, 400, corsOrigin);
       }
 
-      const speechKey = env.AZURE_SPEECH_KEY;
-      const region = (env.AZURE_SPEECH_REGION || "").trim().toLowerCase();
-      if (!speechKey || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(region)) {
-        return json({ error: "Azure Speech is not configured. Add the Speech resource secret and region in Cloudflare." }, 503, corsOrigin);
-      }
-
       const ip = request.headers.get("CF-Connecting-IP") || "unknown";
       const limit = await env.IMAGE_RATE_LIMIT.limit({ key: `tts:${ip}` });
       if (!limit.success) return json({ error: "Speech rate limit reached. Try again in a minute." }, 429, corsOrigin);
 
       try {
-        const ssml = `<speak version="1.0" xml:lang="ru-RU"><voice xml:lang="ru-RU" name="ru-RU-SvetlanaNeural"><prosody rate="0%">${escapeXml(text)}</prosody></voice></speak>`;
-        const response = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
-          method: "POST",
-          headers: {
-            "Ocp-Apim-Subscription-Key": speechKey,
-            "Content-Type": "application/ssml+xml",
-            "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
-            "User-Agent": "BelarusGuideSpeech"
-          },
-          body: ssml
+        const result = await env.AI.run("xai/grok-tts", {
+          text,
+          language: "ru",
+          voice_id: "ara",
+          output_format: { codec: "mp3", sample_rate: 24000, bit_rate: 128000 }
         });
-        if (!response.ok) {
-          console.error("Azure Speech failed", response.status, await response.text());
-          const denied = response.status === 401 || response.status === 403;
-          return json({ error: denied
-            ? "Azure Speech rejected the key or region. Check the Cloudflare resource settings."
-            : "Azure Speech could not synthesize audio. Try again later." }, denied ? 502 : response.status, corsOrigin);
+        const audioUrl = result?.result?.audio || result?.audio;
+        if (typeof audioUrl !== "string" || !/^https:\/\//i.test(audioUrl)) {
+          console.error("Grok TTS returned no audio URL");
+          return json({ error: "The speech model returned no audio. Try again later." }, 502, corsOrigin);
+        }
+        const audioResponse = await fetch(audioUrl);
+        if (!audioResponse.ok) {
+          console.error("Grok TTS audio fetch failed", audioResponse.status);
+          return json({ error: "Could not retrieve generated audio. Try again later." }, 502, corsOrigin);
         }
         const headers = new Headers({
           "Content-Type": "audio/mpeg",
           "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff",
           "Access-Control-Allow-Origin": corsOrigin,
-          "Vary": "Origin"
+          Vary: "Origin"
         });
-        return new Response(response.body, { status: 200, headers });
+        return new Response(audioResponse.body, { status: 200, headers });
       } catch (error) {
-        console.error("Azure Speech request failed", error);
-        return json({ error: "Azure Speech is temporarily unavailable. Try again." }, 502, corsOrigin);
+        console.error("Grok TTS request failed", error);
+        return json({ error: "Speech service is temporarily unavailable. Try again later." }, 502, corsOrigin);
       }
     }
 
@@ -127,7 +119,7 @@ export default {
 
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
     const limit = await env.IMAGE_RATE_LIMIT.limit({ key: ip });
-    if (!limit.success) return json({ error: "Достигнут временный лимит генераций. Попробуйте через минуту." }, 429, corsOrigin);
+      if (!limit.success) return json({ error: "Speech rate limit reached. Try again in a minute." }, 429, corsOrigin);
 
     try {
       const promptResult = await env.AI.run(CHAT_MODEL, {
