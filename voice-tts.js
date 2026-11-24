@@ -55,7 +55,7 @@
     const masculine = /(^|[\s_-])male\b|dmitry|dmitriy|ivan|alexander|andrey|andrei|pavel|sergey|nikolay/i;
     return russian.sort((a, b) => {
       const score = voice => (preferred.test(voice.name) ? 10 : 0)
-        + (/natural|neural|online/i.test(voice.name) ? 2 : 0)
+        + (/natural|neural|online/i.test(voice.name) ? 100 : 0)
         + (/^ru-RU$/i.test(voice.lang) ? 1 : 0)
         - (masculine.test(voice.name) ? 20 : 0);
       return score(b) - score(a);
