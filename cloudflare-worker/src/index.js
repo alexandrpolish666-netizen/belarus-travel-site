@@ -1,7 +1,12 @@
 const MODEL = "@cf/black-forest-labs/flux-1-schnell";
 const CHAT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const TTS_MODEL = "xai/grok-tts";
 const MAX_PROMPT_LENGTH = 2048;
+
+function escapeXml(value) {
+  return value.replace(/[<>&'\"]/g, character => ({
+    "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", "\"": "&quot;"
+  })[character]);
+}
 
 function json(body, status, origin = "") {
   const headers = {
@@ -46,37 +51,49 @@ export default {
     if (body?.mode === "tts") {
       const text = typeof body.text === "string" ? body.text.trim() : "";
       if (!text || text.length > 3000) {
-        return json({ error: "Текст для озвучивания должен содержать от 1 до 3000 символов." }, 400, corsOrigin);
+        return json({ error: "Speech text must contain 1 to 3000 characters." }, 400, corsOrigin);
+      }
+
+      const speechKey = env.AZURE_SPEECH_KEY;
+      const region = (env.AZURE_SPEECH_REGION || "").trim().toLowerCase();
+      if (!speechKey || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(region)) {
+        return json({ error: "Azure Speech is not configured. Add the Speech resource secret and region in Cloudflare." }, 503, corsOrigin);
       }
 
       const ip = request.headers.get("CF-Connecting-IP") || "unknown";
       const limit = await env.IMAGE_RATE_LIMIT.limit({ key: `tts:${ip}` });
-      if (!limit.success) return json({ error: "Достигнут лимит озвучивания. Попробуйте через минуту." }, 429, corsOrigin);
+      if (!limit.success) return json({ error: "Speech rate limit reached. Try again in a minute." }, 429, corsOrigin);
 
       try {
-        const result = await env.AI.run(TTS_MODEL, {
-          text,
-          language: "ru",
-          voice_id: "ara",
-          text_normalization: true,
-          output_format: { codec: "mp3", sample_rate: 44100, bit_rate: 192000 }
+        const ssml = `<speak version="1.0" xml:lang="ru-RU"><voice xml:lang="ru-RU" name="ru-RU-SvetlanaNeural"><prosody rate="0%">${escapeXml(text)}</prosody></voice></speak>`;
+        const response = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+          method: "POST",
+          headers: {
+            "Ocp-Apim-Subscription-Key": speechKey,
+            "Content-Type": "application/ssml+xml",
+            "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+            "User-Agent": "BelarusGuideSpeech"
+          },
+          body: ssml
         });
-        if (typeof result?.audio !== "string" || !result.audio) {
-          return json({ error: "Синтезатор не вернул аудио." }, 502, corsOrigin);
+        if (!response.ok) {
+          console.error("Azure Speech failed", response.status, await response.text());
+          const denied = response.status === 401 || response.status === 403;
+          return json({ error: denied
+            ? "Azure Speech rejected the key or region. Check the Cloudflare resource settings."
+            : "Azure Speech could not synthesize audio. Try again later." }, denied ? 502 : response.status, corsOrigin);
         }
-        const audioResponse = await fetch(result.audio);
-        if (!audioResponse.ok) throw new Error(`Audio fetch failed: ${audioResponse.status}`);
         const headers = new Headers({
-          "Content-Type": audioResponse.headers.get("Content-Type") || "audio/mpeg",
+          "Content-Type": "audio/mpeg",
           "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff",
           "Access-Control-Allow-Origin": corsOrigin,
           "Vary": "Origin"
         });
-        return new Response(audioResponse.body, { status: 200, headers });
+        return new Response(response.body, { status: 200, headers });
       } catch (error) {
-        console.error("Workers AI TTS failed", error);
-        return json({ error: "Озвучка временно недоступна. Попробуйте ещё раз." }, 502, corsOrigin);
+        console.error("Azure Speech request failed", error);
+        return json({ error: "Azure Speech is temporarily unavailable. Try again." }, 502, corsOrigin);
       }
     }
 
