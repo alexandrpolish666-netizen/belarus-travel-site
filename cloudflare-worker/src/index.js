@@ -119,7 +119,7 @@ export default {
 
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
     const limit = await env.IMAGE_RATE_LIMIT.limit({ key: ip });
-      if (!limit.success) return json({ error: "Speech rate limit reached. Try again in a minute." }, 429, corsOrigin);
+    if (!limit.success) return json({ error: "Generation rate limit reached. Try again in a minute." }, 429, corsOrigin);
 
     try {
       const promptResult = await env.AI.run(CHAT_MODEL, {
