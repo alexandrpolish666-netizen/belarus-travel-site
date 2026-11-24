@@ -1,5 +1,6 @@
 const MODEL = "@cf/black-forest-labs/flux-1-schnell";
 const CHAT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const TTS_MODEL = "xai/grok-tts";
 const MAX_PROMPT_LENGTH = 2048;
 
 function json(body, status, origin = "") {
@@ -42,6 +43,43 @@ export default {
     let body;
     try { body = await request.json(); }
     catch { return json({ error: "Некорректный JSON." }, 400, corsOrigin); }
+    if (body?.mode === "tts") {
+      const text = typeof body.text === "string" ? body.text.trim() : "";
+      if (!text || text.length > 3000) {
+        return json({ error: "Текст для озвучивания должен содержать от 1 до 3000 символов." }, 400, corsOrigin);
+      }
+
+      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      const limit = await env.IMAGE_RATE_LIMIT.limit({ key: `tts:${ip}` });
+      if (!limit.success) return json({ error: "Достигнут лимит озвучивания. Попробуйте через минуту." }, 429, corsOrigin);
+
+      try {
+        const result = await env.AI.run(TTS_MODEL, {
+          text,
+          language: "ru",
+          voice_id: "ara",
+          text_normalization: true,
+          output_format: { codec: "mp3", sample_rate: 44100, bit_rate: 192000 }
+        });
+        if (typeof result?.audio !== "string" || !result.audio) {
+          return json({ error: "Синтезатор не вернул аудио." }, 502, corsOrigin);
+        }
+        const audioResponse = await fetch(result.audio);
+        if (!audioResponse.ok) throw new Error(`Audio fetch failed: ${audioResponse.status}`);
+        const headers = new Headers({
+          "Content-Type": audioResponse.headers.get("Content-Type") || "audio/mpeg",
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+          "Access-Control-Allow-Origin": corsOrigin,
+          "Vary": "Origin"
+        });
+        return new Response(audioResponse.body, { status: 200, headers });
+      } catch (error) {
+        console.error("Workers AI TTS failed", error);
+        return json({ error: "Озвучка временно недоступна. Попробуйте ещё раз." }, 502, corsOrigin);
+      }
+    }
+
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
 
     if (body?.mode === "chat") {
