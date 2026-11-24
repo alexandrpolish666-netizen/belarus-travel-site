@@ -1,14 +1,12 @@
 (() => {
   let run = 0;
-  let activeUtterance = null;
-  let activeChannel = null;
   let activeAudio = null;
   let activeAudioUrl = "";
   let activeRequest = null;
+  let activeChannel = null;
   const legacyKey = "alice-speak-replies";
-  const legacyEnabled = localStorage.getItem(legacyKey) === "true";
-  const aliceKey = "alice-speak-replies-alice";
-  if (localStorage.getItem(aliceKey) === null) localStorage.setItem(aliceKey, String(legacyEnabled));
+  const aliceKey = "alice-speak-replies-alice-v2";
+  if (localStorage.getItem(aliceKey) === null) localStorage.setItem(aliceKey, "true");
   localStorage.removeItem(legacyKey);
   const enabled = {
     alice: localStorage.getItem(aliceKey) === "true",
@@ -17,7 +15,6 @@
 
   function stop() {
     run++;
-    activeUtterance = null;
     activeChannel = null;
     activeRequest?.abort();
     activeRequest = null;
@@ -32,55 +29,43 @@
     window.speechSynthesis?.cancel();
   }
 
-  function availableVoices() {
-    const current = window.speechSynthesis?.getVoices() || [];
-    if (current.length) return Promise.resolve(current);
-    return new Promise(resolve => {
-      let settled = false;
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        window.speechSynthesis?.removeEventListener?.("voiceschanged", finish);
-        resolve(window.speechSynthesis?.getVoices() || []);
-      };
-      const timer = setTimeout(finish, 1200);
-      window.speechSynthesis?.addEventListener?.("voiceschanged", finish, { once: true });
-    });
-  }
+  function speak(text, onState = () => {}, channel = "alice") {
+    stop();
+    const currentRun = run;
+    activeChannel = channel;
+    const clean = String(text || "").replace(/https?:\/\/\S+/gi, "").replace(/\s+/g, " ").trim().slice(0, 3000);
+    if (!clean) { activeChannel = null; onState("ended"); return; }
+    const workerUrl = window.ALICE_IMAGE_WORKER_URL;
+    if (!workerUrl || !/^https:\/\//i.test(workerUrl)) {
+      activeChannel = null;
+      onState("error", new Error("Адрес сервиса озвучки не настроен."));
+      return;
+    }
 
-  function selectRussianVoice(voices) {
-    const russian = voices.filter(voice => /^ru(?:-|$)/i.test(voice.lang));
-    const preferred = /svetlana|irina|daria|darina|arina|alena|elena|ekaterina|katya|yulia|julia|olga|milena|tatyana|vera|polina|marina|natalia|female/i;
-    const masculine = /(^|[\s_-])male\b|dmitry|dmitriy|ivan|alexander|andrey|andrei|pavel|sergey|nikolay/i;
-    return russian.sort((a, b) => {
-      const score = voice => (preferred.test(voice.name) ? 10 : 0)
-        + (/natural|neural|online/i.test(voice.name) ? 100 : 0)
-        + (/^ru-RU$/i.test(voice.lang) ? 1 : 0)
-        - (masculine.test(voice.name) ? 20 : 0);
-      return score(b) - score(a);
-    })[0] || null;
-  }
-
-  async function speakWithAliceVoice(text, currentRun, onState) {
     const controller = new AbortController();
     activeRequest = controller;
-    try {
-      const response = await fetch(window.ALICE_IMAGE_WORKER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "audio/mpeg" },
-        body: JSON.stringify({ mode: "tts", text }),
-        signal: controller.signal
-      });
-      if (!response.ok) throw new Error(`TTS HTTP ${response.status}`);
-      const blob = await response.blob();
-      if (currentRun !== run) return true;
-      if (!blob.size || !/^audio\//i.test(blob.type)) throw new Error("Некорректный формат аудио");
+    onState("loading");
+    fetch(workerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "audio/mpeg" },
+      body: JSON.stringify({ mode: "tts", text: clean }),
+      signal: controller.signal
+    }).then(async response => {
+      if (!response.ok) {
+        let message = `Сервис озвучки вернул ошибку (HTTP ${response.status}).`;
+        try { message = (await response.json()).error || message; } catch {}
+        throw new Error(message);
+      }
+      const type = response.headers.get("Content-Type") || "";
+      if (!type.toLowerCase().startsWith("audio/")) throw new Error("Сервис озвучки вернул ответ без аудио.");
+      return response.blob();
+    }).then(blob => {
+      if (currentRun !== run) return;
+      activeRequest = null;
       activeAudioUrl = URL.createObjectURL(blob);
-      const audio = new Audio(activeAudioUrl);
-      activeAudio = audio;
-      audio.onplay = () => { if (currentRun === run) onState("playing"); };
-      audio.onended = () => {
+      activeAudio = new Audio(activeAudioUrl);
+      activeAudio.onplaying = () => { if (currentRun === run) onState("playing"); };
+      activeAudio.onended = () => {
         if (currentRun !== run) return;
         activeAudio = null;
         activeChannel = null;
@@ -88,58 +73,27 @@
         activeAudioUrl = "";
         onState("ended");
       };
-      audio.onerror = () => {
+      activeAudio.onerror = () => {
         if (currentRun !== run) return;
         activeAudio = null;
         activeChannel = null;
+        if (activeAudioUrl) URL.revokeObjectURL(activeAudioUrl);
+        activeAudioUrl = "";
         onState("error", new Error("Не удалось воспроизвести аудио."));
       };
-      await audio.play();
-      return true;
-    } catch (error) {
-      if (currentRun !== run || error.name === "AbortError") return true;
-      activeRequest = null;
-      activeAudio = null;
-      return false;
-    }
-  }
-
-  function speak(text, onState = () => {}, channel = "alice") {
-    stop();
-    const currentRun = run;
-    activeChannel = channel;
-    const clean = String(text || "").replace(/https?:\/\/\S+/gi, "").replace(/\s+/g, " ").trim().slice(0, 3000);
-    if (!clean) { onState("ended"); return; }
-    onState("loading");
-    speakWithAliceVoice(clean, currentRun, onState).then(usedAliceVoice => {
-      if (usedAliceVoice || currentRun !== run) return;
-      if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
-        activeChannel = null;
-        onState("error", new Error("В этом браузере нет встроенного синтеза речи."));
-        return;
-      }
-      availableVoices().then(voices => {
+      activeAudio.play().catch(error => {
         if (currentRun !== run) return;
-        const utterance = new SpeechSynthesisUtterance(clean);
-        utterance.lang = "ru-RU";
-        utterance.rate = 0.95;
-        utterance.voice = selectRussianVoice(voices);
-        utterance.onstart = () => { if (currentRun === run) onState("playing"); };
-        utterance.onend = () => {
-          if (currentRun !== run) return;
-          activeUtterance = null;
-          activeChannel = null;
-          onState("ended");
-        };
-        utterance.onerror = event => {
-          if (currentRun !== run || event.error === "canceled" || event.error === "interrupted") return;
-          activeUtterance = null;
-          activeChannel = null;
-          onState("error", new Error("Не удалось озвучить ответ."));
-        };
-        activeUtterance = utterance;
-        window.speechSynthesis.speak(utterance);
+        activeAudio = null;
+        activeChannel = null;
+        if (activeAudioUrl) URL.revokeObjectURL(activeAudioUrl);
+        activeAudioUrl = "";
+        onState("error", error);
       });
+    }).catch(error => {
+      if (currentRun !== run || error.name === "AbortError") return;
+      activeRequest = null;
+      activeChannel = null;
+      onState("error", error);
     });
   }
 
@@ -154,7 +108,7 @@
   window.jarvisVoice = {
     speak,
     stop,
-    isPlaying: (channel = "") => Boolean((activeUtterance && window.speechSynthesis?.speaking) || activeAudio && !activeAudio.paused) && (!channel || activeChannel === channel),
+    isPlaying: (channel = "") => Boolean(activeRequest || activeAudio && !activeAudio.paused) && (!channel || activeChannel === channel),
     isEnabled: (channel = "alice") => Boolean(enabled[channel]),
     setEnabled
   };
