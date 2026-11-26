@@ -496,8 +496,7 @@ section{padding:46px 0}.map-workspace{align-items:start}.route-controls{align-se
     <p>Поговори с Алисой о зубрах: например, как они живут в Беловежской пуще и чем помогают лесу.</p>
     <div class="bison-prompts"><button type="button" data-bison-prompt="Почему зубр важен для леса?">Зачем зубр лесу?</button><button type="button" data-bison-prompt="Расскажи интересный факт о зубрах Беларуси.">Интересный факт</button></div>
     <form class="bison-form" id="bison-form"><label class="sr-only" for="bison-question">Вопрос о зубре</label><input id="bison-question" maxlength="500" placeholder="Задай свой вопрос…" autocomplete="off"><button type="submit">Спросить</button></form>
-    <button class="bison-voice-toggle" id="bison-voice-toggle" type="button" aria-pressed="false">🔊 Озвучивать ответы: выкл.</button>
-    <p class="bison-answer" id="bison-answer" aria-live="polite">Алиса ответит здесь.</p><p class="bison-voice-status" id="bison-voice-status" aria-live="polite"></p>
+    <p class="bison-answer" id="bison-answer" aria-live="polite">Алиса ответит здесь.</p>
     <p class="bison-credit">3D-скан самки европейского зубра: Natural History Museum Vienna, сканирование Anna Haider и Viola Winkler, © Lois Lammerhuber. <a href="https://sketchfab.com/3d-models/european-bison-nhmw-zoo-mamm-258st797-e81660954cb34a0fb4d525a4ae88f3d6" target="_blank" rel="noopener noreferrer">Источник на Sketchfab</a> · <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC 4.0</a>.</p>
   </div>
 </div>
@@ -681,7 +680,7 @@ const query=byId("place-search").value.trim().toLocaleLowerCase("ru-RU"),matches
 const placeWord={one:"место",few:"места",many:"мест",other:"мест"}[new Intl.PluralRules("ru-RU").select(matches.length)];byId("place-count").textContent=matches.length+" "+placeWord;
 grid.innerHTML=matches.length?matches.map(p=>{
  const c=creatures.find(x=>x.id===p.creature),photo=placePhotos[p.id],history=placeStories[p.id]||p.magic||"Историческая справка уточняется.",studied=visited.includes(p.id),visitLabel=photoVerifiedIds.has(p.id)?"\u2713 \u0424\u043e\u0442\u043e \u0418\u0418 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043e":"\u2713 \u0412\u0438\u0437\u0438\u0442 \u043e\u0442\u043c\u0435\u0447\u0435\u043d",mapPoint=coordinates[p.id],mapCoords=mapPoint.map(value=>value.toFixed(6)),mapUrl="https://yandex.ru/maps/?"+new URLSearchParams({text:p.name+" "+p.town});
-const photoHtml='<figure class="place-photo"><div class="photo-fallback" aria-hidden="true"><span>'+p.icon+'</span><small>Фото временно недоступно</small></div><img src="'+commonsFileUrl(photo.file,640)+'" alt="'+(photo.alt||p.name)+'" loading="lazy" decoding="async"><figcaption class="photo-credit"><a href="'+commonsPageUrl(photo.file)+'" target="_blank" rel="noopener noreferrer">Фото: '+photo.author+' · Wikimedia Commons</a> · <a href="'+photo.licenseUrl+'" target="_blank" rel="noopener noreferrer">'+photo.license+'</a></figcaption></figure>';
+const photoHtml='<figure class="place-photo"><div class="photo-fallback" aria-hidden="true"><span>'+p.icon+'</span><small>Фото временно недоступно</small></div><img src="'+commonsFileUrl(photo.file,960)+'" alt="'+(photo.alt||p.name)+'" loading="lazy" decoding="async"><figcaption class="photo-credit"><a href="'+commonsPageUrl(photo.file)+'" target="_blank" rel="noopener noreferrer">Фото: '+photo.author+' · Wikimedia Commons</a> · <a href="'+photo.licenseUrl+'" target="_blank" rel="noopener noreferrer">'+photo.license+'</a></figcaption></figure>';
 
  return '<article class="place" id="'+p.id+'">'+photoHtml+'<div class="placetop"><span class="icon">'+p.icon+'</span><span class="region">'+p.region+'</span></div><div class="place-tools-row"><div><h3>'+p.name+'</h3><span class="town">'+p.town+' · '+p.kind+'</span></div><button class="place-favorite" type="button" data-favorite="'+p.id+'" aria-pressed="'+favorites.includes(p.id)+'" aria-label="'+(favorites.includes(p.id)?"Убрать из избранного: "+p.name:"Добавить в избранное: "+p.name)+'">'+(favorites.includes(p.id)?"♥":"♡")+'</button></div><p class="fact">'+p.fact+'</p><p class="magic"><b>Историческая справка:</b> '+history+'</p><div class="placefoot"><button class="place-details" type="button" data-details="'+p.id+'">Подробнее</button><button class="discover '+(studied?"found":"")+'" data-place="'+p.id+'">'+(studied?visitLabel:"📷 Отметить по фото")+'</button><span class="hint">'+(studied?(photoVerifiedIds.has(p.id)?"Место распознано на фото":c.name):"спутник ждёт фото")+'</span><a class="google-map-link" href="'+mapUrl+'" target="_blank" rel="noopener noreferrer" aria-label="Открыть в Яндекс Картах: '+p.name+'">Яндекс Карты ↗</a></div></article>'
 }).join(""): '<p class="empty-places">'+(favoritesOnly&&!favorites.length?'Здесь пока пусто. Отмечай сердцем места, которые хочется сохранить.':'Ничего не нашлось. Попробуй изменить запрос или выбрать другую область.')+'</p>';
@@ -739,7 +738,7 @@ initializePage();
 </aside>
 <script src="image-config.js?v=20261122-cloudflare1" defer></script>
 <script src="alice-ai.js?v=20261123-chat-audio-image1" defer></script>
-<script src="voice-tts.js?v=20261126-worker-tts2" defer></script>
+<script src="voice-tts.js?v=20261126-edge-neural-voice3" defer></script>
 <script src="guide.js?v=20261123-recorded-place-voice2" defer></script>
 <script src="bison-guide.js?v=20261123-chat-audio-image1" defer></script>
 </body></html>

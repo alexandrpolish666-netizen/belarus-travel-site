@@ -2,35 +2,11 @@
   const form = document.getElementById("bison-form");
   const input = document.getElementById("bison-question");
   const answer = document.getElementById("bison-answer");
-  const voiceToggle = document.getElementById("bison-voice-toggle");
   if (!form || !input || !answer) return;
 
-  const voiceChannel = "bison";
-  let speakAnswers = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
   let requestNumber = 0;
   const imageRequest = /(?:сгенерируй|генерируй|создай|нарисуй|изобрази|сделай\s+(?:мне\s+)?(?:фото|картин|изображен|рисунок|иллюстрац)|покажи\s+(?:мне\s+)?(?:фото|картин|изображен|рисунок|иллюстрац))/i;
 
-  function renderVoiceToggle() {
-    if (!voiceToggle) return;
-    speakAnswers = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
-    voiceToggle.setAttribute("aria-pressed", String(speakAnswers));
-    voiceToggle.textContent = `🔊 Озвучивать ответы: ${speakAnswers ? "вкл." : "выкл."}`;
-  }
-  window.addEventListener("alice-voice-setting", event => {
-    if (event.detail?.channel === voiceChannel) renderVoiceToggle();
-  });
-  renderVoiceToggle();
-
-  function speak(text) {
-    window.jarvisVoice?.speak(text, state => {
-      const status = document.getElementById("bison-voice-status");
-      if (status) status.textContent = state === "loading" ? "Готовлю озвучку…" : state === "playing" ? "Алиса озвучивает ответ." : state === "error" ? "Не удалось озвучить ответ." : "";
-    }, voiceChannel);
-  }
-
-  voiceToggle?.addEventListener("click", () => {
-    window.jarvisVoice?.setEnabled(!speakAnswers, voiceChannel);
-  });
 
   async function generateImage(request, number) {
     const artwork = document.getElementById("bison-artwork");
@@ -74,7 +50,6 @@
       if (number !== requestNumber) return;
       const response = reply || "Не получилось подготовить ответ. Попробуй спросить иначе.";
       answer.textContent = response;
-      if (speakAnswers) speak(response);
     } catch (error) {
       if (number !== requestNumber) return;
       answer.dataset.error = "true";

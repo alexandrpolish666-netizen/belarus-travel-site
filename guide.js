@@ -95,7 +95,7 @@
       const text = tabMessages[link.getAttribute("href")];
       if (text) {
         setMessage(text);
-        setExpanded(true);
+        setExpanded(window.matchMedia("(min-width: 651px)").matches);
       }
     });
   });
@@ -129,44 +129,10 @@
   const chat = document.createElement("section");
   chat.className = "guide-chat";
   chat.setAttribute("aria-label", "Чат с Алисой");
-  chat.innerHTML = '<div class="guide-chat-log" role="log" aria-live="polite" aria-relevant="additions"></div><form class="guide-chat-form"><label class="visually-hidden" for="guide-chat-input">Сообщение Алисе</label><input id="guide-chat-input" name="message" maxlength="300" autocomplete="off" placeholder="Например: маршрут Минск — Несвиж" required><button type="submit">Отправить</button></form><button class="guide-chat-voice" type="button" aria-pressed="false">🔊 Озвучивать ответы: выкл.</button><span class="guide-chat-voice-status" aria-live="polite"></span>';
+  chat.innerHTML = '<div class="guide-chat-log" role="log" aria-live="polite" aria-relevant="additions"></div><form class="guide-chat-form"><label class="visually-hidden" for="guide-chat-input">Сообщение Алисе</label><input id="guide-chat-input" name="message" maxlength="300" autocomplete="off" placeholder="Например: маршрут Минск — Несвиж" required><button type="submit">Отправить</button></form>';
   panel?.append(chat);
   const chatLog = chat.querySelector(".guide-chat-log");
   const chatInput = chat.querySelector("#guide-chat-input");
-  const voiceToggle = chat.querySelector(".guide-chat-voice");
-  const voiceStatus = chat.querySelector(".guide-chat-voice-status");
-  const voiceChannel = "alice";
-  let speakReplies = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
-  let pendingImagePrompt = "";
-
-  function renderVoiceToggle() {
-    speakReplies = Boolean(window.jarvisVoice?.isEnabled(voiceChannel));
-    voiceToggle.setAttribute("aria-pressed", String(speakReplies));
-    voiceToggle.textContent = `🔊 Озвучивать ответы: ${speakReplies ? "вкл." : "выкл."}`;
-  }
-  document.getElementById("place-details-stop")?.addEventListener("click", () => {
-    if (document.getElementById("place-details-stop")?.dataset.aliceNarration === "true") {
-      window.jarvisVoice?.stop();
-      document.getElementById("narrator")?.classList.remove("speaking");
-      document.getElementById("place-details-speak").textContent = "▶ Послушать рассказ";
-    }
-  });
-  window.addEventListener("alice-voice-setting", event => {
-    if (event.detail?.channel === voiceChannel) renderVoiceToggle();
-  });
-  renderVoiceToggle();
-
-  function speakChatReply(text) {
-    window.jarvisVoice?.speak(text, state => {
-      if (!voiceStatus) return;
-      voiceStatus.textContent = state === "loading" ? "Готовлю озвучку…" : state === "playing" ? "Алиса озвучивает ответ." : state === "error" ? "Не удалось озвучить ответ." : "";
-    }, voiceChannel);
-  }
-
-  voiceToggle.addEventListener("click", () => {
-    window.jarvisVoice?.setEnabled(!speakReplies, voiceChannel);
-  });
-
   // Keep the composer visible when a phone keyboard reduces the visual viewport.
   const updateMobileChatViewport = () => {
     const viewport = window.visualViewport;
@@ -211,9 +177,7 @@
     }
     chatLog.append(row);
     chatLog.scrollTop = chatLog.scrollHeight;
-    if (role === "alice" && speakReplies && !["Думаю…", "Ищу справку в интернете…"].includes(text)) {
-      speakChatReply(text);
-    }
+
   }
   addChatMessage("alice", "Привет! Я могу найти справку о месте, собрать автомобильный маршрут или ответить на вопрос.");
 
